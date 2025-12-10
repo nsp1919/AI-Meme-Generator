@@ -8,6 +8,7 @@ import Link from "next/link";
 
 interface AuthFormProps {
     type: "login" | "signup";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     action: (prevState: any, formData: FormData) => Promise<{ error?: string; success?: string }>;
 }
 

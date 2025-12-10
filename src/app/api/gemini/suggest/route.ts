@@ -53,6 +53,7 @@ export async function POST() {
         const suggestions = JSON.parse(text);
 
         return NextResponse.json({ suggestions });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("Gemini API Error Detail:", JSON.stringify(error, null, 2));
         console.error("Gemini Error Message:", error.message);

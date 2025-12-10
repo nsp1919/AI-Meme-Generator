@@ -240,6 +240,7 @@ export function MemeGenerator() {
                 <div className="flex flex-col gap-6 order-2 lg:order-1 h-full max-h-[calc(100vh-100px)] overflow-y-auto pr-2">
 
                     {/* Image Source Tabs */}
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     <Tabs value={bgType} onValueChange={(v: any) => setBgType(v)} className="w-full">
                         <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="ai"><Sparkles className="w-4 h-4 mr-2" /> AI</TabsTrigger>
@@ -534,7 +535,7 @@ export function MemeGenerator() {
                                         <Share2 className="w-4 h-4 mr-2" /> Share Now (Instagram)
                                     </Button>
                                     <p className="text-xs text-center text-zinc-500">
-                                        Note: Instagram may not auto-paste the text. Use "Copy Caption" first!
+                                        Note: Instagram may not auto-paste the text. Use &quot;Copy Caption&quot; first!
                                     </p>
                                 </CardContent>
                             </Card>
@@ -548,11 +549,15 @@ export function MemeGenerator() {
 
 function DraggableLayer({ layer, isSelected, onStop, onSelect }: { layer: Layer, isSelected: boolean, onStop: (x: number, y: number) => void, onSelect: () => void }) {
     const nodeRef = useRef(null);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleStop = (e: any, data: any) => onStop(data.x, data.y);
+
     return (
         <Draggable
             nodeRef={nodeRef}
             defaultPosition={{ x: layer.x, y: layer.y }}
-            onStop={(e: any, data: any) => onStop(data.x, data.y)}
+            onStop={handleStop}
         >
             <div
                 ref={nodeRef}

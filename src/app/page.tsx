@@ -10,7 +10,7 @@ export default function Home() {
         </h1>
         <p className="text-lg text-gray-600 dark:text-gray-400 max-w-lg">
           Create hilarious memes and reels in seconds using the power of AI.
-          Just describe it, and we'll generate it.
+          Just describe it, and we&apos;ll generate it.
         </p>
         <div className="flex gap-4">
           <Link href="/generate">

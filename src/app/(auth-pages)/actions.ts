@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const signUpAction = async (prevState: any, formData: FormData) => {
     const email = formData.get("email")?.toString();
     const password = formData.get("password")?.toString();
@@ -32,6 +33,7 @@ export const signUpAction = async (prevState: any, formData: FormData) => {
     }
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const signInAction = async (prevState: any, formData: FormData) => {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;

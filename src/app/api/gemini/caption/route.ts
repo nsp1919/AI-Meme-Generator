@@ -40,6 +40,7 @@ export async function POST(req: Request) {
         const data = JSON.parse(text);
 
         return NextResponse.json(data);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("Gemini Caption Error:", error);
         return NextResponse.json(
