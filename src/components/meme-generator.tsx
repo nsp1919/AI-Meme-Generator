@@ -12,12 +12,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
     Download, Sparkles, Image as ImageIcon,
     Lightbulb, RefreshCw, Upload, Link as LinkIcon,
-    Plus, Type, Square, Cloud, Trash2, Move, Settings
+    Plus, Type, Square, Cloud, Trash2, Move, Settings,
+    Share2, Copy, X
 } from "lucide-react";
 import { toPng } from 'html-to-image';
 import { cn } from "@/lib/utils";
 
 // Types
+interface ShareData {
+    file: File;
+    caption: string;
+    hashtags: string;
+}
+
 interface Layer {
     id: string;
     type: 'text' | 'shape';
@@ -65,9 +72,18 @@ export function MemeGenerator() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSuggesting, setIsSuggesting] = useState(false);
     const [suggestions, setSuggestions] = useState<MemeSuggestion[]>([]);
+
+    // --- Sharing State ---
+    const [shareData, setShareData] = useState<ShareData | null>(null);
+    const [isGeneratingCaption, setIsGeneratingCaption] = useState(false);
+
+
+
     const memeRef = useRef<HTMLDivElement>(null);
 
     // --- Actions ---
+
+
 
     // 1. Extra Layers Logic
     const addLayer = (type: 'text' | 'shape', content: string = "New Text") => {
@@ -161,6 +177,57 @@ export function MemeGenerator() {
             link.href = dataUrl;
             link.click();
         } catch (err) { console.error(err); }
+    };
+
+    // 5. Social Share Logic
+    const handleSocialShare = async () => {
+        if (memeRef.current === null) return;
+        setIsGeneratingCaption(true);
+        try {
+            // 1. Generate Image File
+            const blob = await toPng(memeRef.current, { cacheBust: true });
+            const res = await fetch(blob);
+            const blobData = await res.blob();
+            const file = new File([blobData], "meme.png", { type: "image/png" });
+
+            // 2. Generate Caption
+            const captionRes = await fetch("/api/gemini/caption", {
+                method: "POST",
+                body: JSON.stringify({
+                    topText,
+                    bottomText,
+                    desc: aiPrompt || "Funny meme"
+                })
+            });
+            const captionData = await captionRes.json();
+
+            setShareData({
+                file,
+                caption: captionData.caption || "Check out this meme!",
+                hashtags: captionData.hashtags || "#meme #viral"
+            });
+        } catch (e) {
+            console.error("Share error:", e);
+        } finally {
+            setIsGeneratingCaption(false);
+        }
+    };
+
+    const triggerNativeShare = async () => {
+        if (!shareData) return;
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: 'Check out my meme!',
+                    text: `${shareData.caption}\n\n${shareData.hashtags}`,
+                    files: [shareData.file]
+                });
+            } else {
+                alert("Sharing not supported on this device/browser.");
+            }
+        } catch (error) {
+            console.log("Error sharing:", error);
+        }
     };
 
     const selectedLayer = layers.find(l => l.id === selectedLayerId);
@@ -327,8 +394,8 @@ export function MemeGenerator() {
                     <Card className="overflow-hidden shadow-2xl border-2 border-muted">
                         <div
                             ref={memeRef}
-                            className="relative bg-zinc-900 overflow-hidden select-none"
-                            style={{ width: '500px', height: '500px' }}
+                            className="relative bg-zinc-900 overflow-hidden select-none w-full max-w-[500px] aspect-square"
+                            style={{ height: 'auto' }}
                             onMouseDown={() => setSelectedLayerId(null)}
                         >
                             {/* 1. Background Image */}
@@ -385,9 +452,94 @@ export function MemeGenerator() {
                             ))}
                         </div>
                     </Card>
-                    <Button size="lg" className="w-full max-w-[500px]" onClick={handleDownload} disabled={!bgContent}>
-                        <Download className="w-4 h-4 mr-2" /> Download Meme
-                    </Button>
+                    <div className="flex gap-2 w-full max-w-[500px]">
+                        <Button size="lg" className="flex-1 bg-zinc-800 hover:bg-zinc-700" onClick={handleDownload} disabled={!bgContent}>
+                            <Download className="w-4 h-4 mr-2" /> Download
+                        </Button>
+                        <Button size="lg" className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0"
+                            onClick={handleSocialShare} disabled={!bgContent || isGeneratingCaption}>
+                            {isGeneratingCaption ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Share2 className="w-4 h-4 mr-2" />}
+                            {isGeneratingCaption ? "AI Magic..." : "Rocket Share 🚀"}
+                        </Button>
+                    </div>
+
+                    {/* SHARE MODAL OVERLAY */}
+                    {shareData && (
+                        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
+                            <Card className="w-full max-w-md bg-zinc-900 border-zinc-800 text-white relative animate-in zoom-in-50">
+                                <Button variant="ghost" size="icon" className="absolute top-2 right-2 text-zinc-400 hover:text-white" onClick={() => setShareData(null)}>
+                                    <X className="w-5 h-5" />
+                                </Button>
+                                <CardHeader>
+                                    <CardTitle>Ready to Launch? 🚀</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="bg-black rounded-lg p-2 flex justify-center">
+                                        <img src={URL.createObjectURL(shareData.file)} className="h-48 object-contain" />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-zinc-400">AI Generated Caption (Click Copy)</Label>
+                                        <div className="bg-zinc-800 p-3 rounded text-sm min-h-[80px] whitespace-pre-wrap font-mono text-zinc-300">
+                                            {shareData.caption}
+                                            <br /><br />
+                                            {shareData.hashtags}
+                                        </div>
+                                        <Button variant="secondary" size="sm" className="w-full"
+                                            onClick={() => navigator.clipboard.writeText(`${shareData.caption}\n\n${shareData.hashtags}`)}>
+                                            <Copy className="w-3 h-3 mr-2" /> Copy Caption to Clipboard
+                                        </Button>
+                                    </div>
+
+                                    <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-500 font-bold" onClick={triggerNativeShare}>
+                                        <Share2 className="w-4 h-4 mr-2" /> Open Instagram / Share
+                                    </Button>
+                                    <p className="text-xs text-center text-zinc-500">
+                                        Tip: Paste the caption after Instagram opens!
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+
+                    {/* SHARE MODAL OVERLAY */}
+                    {shareData && (
+                        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
+                            <Card className="w-full max-w-md bg-zinc-900 border-zinc-800 text-white relative animate-in zoom-in-50">
+                                <Button variant="ghost" size="icon" className="absolute top-2 right-2 text-zinc-400 hover:text-white" onClick={() => setShareData(null)}>
+                                    <X className="w-5 h-5" />
+                                </Button>
+                                <CardHeader>
+                                    <CardTitle>Rocket Launchpad 🚀</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="bg-black rounded-lg p-2 flex justify-center">
+                                        <img src={URL.createObjectURL(shareData.file)} className="h-48 object-contain" />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-zinc-400">AI Generated Caption</Label>
+                                        <div className="bg-zinc-800 p-3 rounded text-sm min-h-[80px] whitespace-pre-wrap">
+                                            {shareData.caption}
+                                            <br /><br />
+                                            {shareData.hashtags}
+                                        </div>
+                                        <Button variant="outline" size="sm" className="w-full text-zinc-400"
+                                            onClick={() => navigator.clipboard.writeText(`${shareData.caption}\n\n${shareData.hashtags}`)}>
+                                            <Copy className="w-3 h-3 mr-2" /> Copy Caption
+                                        </Button>
+                                    </div>
+
+                                    <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-500" onClick={triggerNativeShare}>
+                                        <Share2 className="w-4 h-4 mr-2" /> Share Now (Instagram)
+                                    </Button>
+                                    <p className="text-xs text-center text-zinc-500">
+                                        Note: Instagram may not auto-paste the text. Use "Copy Caption" first!
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
