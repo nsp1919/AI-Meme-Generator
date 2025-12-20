@@ -13,7 +13,7 @@ import {
     Download, Sparkles, Image as ImageIcon,
     Lightbulb, RefreshCw, Upload, Link as LinkIcon,
     Plus, Type, Square, Cloud, Trash2, Move, Settings,
-    Share2, Copy, X
+    Share2, Copy, X, Globe
 } from "lucide-react";
 import { toPng } from 'html-to-image';
 import { cn } from "@/lib/utils";
@@ -72,6 +72,8 @@ export function MemeGenerator() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSuggesting, setIsSuggesting] = useState(false);
     const [suggestions, setSuggestions] = useState<MemeSuggestion[]>([]);
+    const [memeLanguage, setMemeLanguage] = useState<'telugu' | 'english'>('english');
+    const [memeTopic, setMemeTopic] = useState("");
 
     // --- Sharing State ---
     const [shareData, setShareData] = useState<ShareData | null>(null);
@@ -149,7 +151,11 @@ export function MemeGenerator() {
     const fetchSuggestions = async () => {
         setIsSuggesting(true);
         try {
-            const res = await fetch("/api/gemini/suggest", { method: "POST" });
+            const res = await fetch("/api/gemini/suggest", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ language: memeLanguage, topic: memeTopic })
+            });
             const data = await res.json();
             if (data.suggestions) setSuggestions(data.suggestions);
         } catch (e) { console.error(e); }
@@ -252,16 +258,43 @@ export function MemeGenerator() {
                             <CardContent className="pt-6">
                                 {bgType === 'ai' && (
                                     <div className="space-y-4">
-                                        <div className="flex justify-between items-center">
-                                            <Label>Prompt</Label>
-                                            <Button variant="ghost" size="sm" onClick={fetchSuggestions} disabled={isSuggesting}>
-                                                {isSuggesting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Lightbulb className="w-4 h-4 text-yellow-500" />}
-                                            </Button>
+                                        {/* Language & Topic Selection */}
+                                        <div className="flex gap-2">
+                                            <div className="flex-shrink-0">
+                                                <Label className="text-xs text-muted-foreground mb-1 block">Language</Label>
+                                                <select
+                                                    value={memeLanguage}
+                                                    onChange={(e) => setMemeLanguage(e.target.value as 'telugu' | 'english')}
+                                                    className="h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                                >
+                                                    <option value="english">English</option>
+                                                    <option value="telugu">తెలుగు (Telugu)</option>
+                                                </select>
+                                            </div>
+                                            <div className="flex-1">
+                                                <Label className="text-xs text-muted-foreground mb-1 block">Topic (optional)</Label>
+                                                <div className="flex gap-2">
+                                                    <Input
+                                                        value={memeTopic}
+                                                        onChange={(e) => setMemeTopic(e.target.value)}
+                                                        placeholder="e.g. coding, office life, exams..."
+                                                        className="h-9"
+                                                    />
+                                                    <Button variant="outline" size="sm" onClick={fetchSuggestions} disabled={isSuggesting} className="h-9 px-3">
+                                                        {isSuggesting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <><Lightbulb className="w-4 h-4 text-yellow-500 mr-1" /> Ideas</>}
+                                                    </Button>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <Textarea
-                                            value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)}
-                                            placeholder="Describe image..." className="h-24"
-                                        />
+
+                                        {/* AI Prompt */}
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-1 block">Image Prompt</Label>
+                                            <Textarea
+                                                value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)}
+                                                placeholder="Describe the background image for your meme..." className="h-20"
+                                            />
+                                        </div>
                                         <Button onClick={handleGenerateAI} disabled={isLoading || !aiPrompt} className="w-full">
                                             {isLoading ? "Generating..." : "Generate Background"}
                                         </Button>
@@ -338,13 +371,6 @@ export function MemeGenerator() {
                                 </CardContent>
                             </Card>
                         )}
-
-                        <Button variant="secondary" onClick={() => addLayer('text', 'Extra Text')} className="w-full">
-                            <Plus className="w-4 h-4 mr-2" /> Add Extra Floating Text
-                        </Button>
-                        <Button variant="outline" onClick={() => addLayer('shape', 'cloud')} className="w-full">
-                            <Cloud className="w-4 h-4 mr-2" /> Add Speech Bubble
-                        </Button>
                     </div>
 
                     {/* EXTRA LAYER SETTINGS (Moved from Right Panel) */}
@@ -543,6 +569,43 @@ export function MemeGenerator() {
                     )}
                 </div>
             </div>
+
+            {/* Footer */}
+            <footer className="text-center py-4 border-t border-muted mt-8">
+                <p className="text-sm text-muted-foreground">
+                    Developed by <span className="font-semibold text-foreground">NSP Creative Hub</span>
+                </p>
+                <div className="flex justify-center gap-4 mt-1 flex-wrap">
+                    <a
+                        href="https://nspcreativehub.info"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline"
+                    >
+                        Website: nspcreativehub.info
+                    </a>
+                    <span className="text-xs text-muted-foreground">|</span>
+                    <a
+                        href="https://mail.google.com/mail/?view=cm&to=nspcreativehub@gmail.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline"
+                    >
+                        Email: nspcreativehub@gmail.com
+                    </a>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                    Follow us on Instagram:{" "}
+                    <a
+                        href="https://instagram.com/nsp_creative_hub"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline font-medium"
+                    >
+                        @nsp_creative_hub
+                    </a>
+                </p>
+            </footer>
         </div>
     );
 }
